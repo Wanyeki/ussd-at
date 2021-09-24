@@ -1,0 +1,19 @@
+{
+  "name": "ussd-at",
+  "version": "1.0.0",
+  "description": "ussd builder for africastalking api",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "m"
+  },
+  "keywords": [
+    "ussd",
+    "africastalking"
+  ],
+  "author": "francis wanyeki",
+  "license": "MIT"
+}
