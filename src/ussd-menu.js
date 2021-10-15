@@ -1,5 +1,5 @@
-
-class USSDMenu{
+const EventEmitter = require('events');
+class USSDMenu extends EventEmitter{
     states={}
     curr_state={}
     id=''
@@ -10,7 +10,7 @@ class USSDMenu{
         start:(...args)=>this.sess['start'](this.id,...args)
     }
     sess={
-        set:(id)=>{},
+        set:null,
         get:(id)=>{},
         end:(id)=>{},
         start:(id)=>{}
@@ -41,11 +41,13 @@ class USSDMenu{
     }
     run=async (config)=>{
         this.id=config.sessionId
+        this.route=config.text==''||config.text==undefined?[]:config.text.split('*')
+        if(config.discardRoutes)this.discardRoutes=true;
         let that=this
         let route=config.text;
-        let parts=route===''?[]:route.split('*')
+        let parts=route==''||route==undefined?[]:route.split('*')
         if(parts.length==0) this.session.start();
-
+        parts=await this.cleanRoute(parts)
         this.curr_state=this.states['__start__']
         let max_routes=parts.length; 
         let val=parts[0]
@@ -75,7 +77,13 @@ class USSDMenu{
         }
 
         this.val=val
-        await this.curr_state.run()
+        try{
+           await this.curr_state.run() 
+        }catch(e){
+            this.emit('error',e)
+            this.end("An Error Occured")
+        }
+        
         return await this.message;
         
     }
@@ -87,7 +95,39 @@ class USSDMenu{
         this.curr_state=this.states[name]
         this.curr_state.run()
     }
+    discardThis=()=>{
+        if(this.sess.set){
+            let rand=Math.round(Math.random()*10000)
+            let pos=this.route.length-1;
+            let discarded={};
+            discarded[rand]={val:this.val,pos}
+            this.session.set('discardedRoutes',discarded);
+        }else{
+            this.emit('error','Can\'t discard whitout a set method');
+        }
 
+    }
+    discardRoutes=false;
+    cleanRoute=async(route)=>{
+        if(this.sess.set==null || !this.discardRoutes || route.length==0){return route}
+        let discarded=await this.session.get('discardedRoutes');
+        if(!discarded){return route}
+        let list=[]
+        for(let[key,value] of Object.entries(discarded)){
+            list.push(value)
+        }
+        let count=0;
+        list=list.sort((a,b)=>a.pos-b.pos)
+        for(let i=0;i<list.length;i++){
+           let idx=list[i].pos-count;
+           if(route[idx]==list[i].val){
+               route.splice(idx,1);
+           }
+           count++; 
+        }
+        return route
+
+    }
 
 }
 
