@@ -64,8 +64,12 @@ class USSDMenu extends EventEmitter{
                     this.curr_state=this.states[state_name]
                 }else{
                     for(let [key,value] of Object.entries(this.curr_state.next)){
-                        if(key.startsWith("*\\") && val.match(new RegExp(key.substr(1)))>0){
-                            this.curr_state=this.states[value]
+                        let reg;
+                        if(key.startsWith("*")){
+                            reg=new RegExp(key.substr(1))
+                            if(reg.test(val)){
+                                this.curr_state=this.states[value]
+                            }
                         }
                     }
                 }
