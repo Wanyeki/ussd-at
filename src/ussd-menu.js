@@ -56,23 +56,34 @@ class USSDMenu extends EventEmitter{
             this.message=new Promise((res,rej)=>{
                 that.resolver=res
             });
-            val=parts.shift()
-
+            let prev_val=val;
+            val=parts.shift();
+            
             if(this.curr_state.next){
                 let state_name=this.curr_state.next[val]
                 if(state_name){
-                    this.curr_state=this.states[state_name]
+                    this.curr_state=this.states[state_name];
+                    this.val=val
                 }else{
                     for(let [key,value] of Object.entries(this.curr_state.next)){
                         let reg;
                         if(key.startsWith("*")){
                             reg=new RegExp(key.substr(1))
                             if(reg.test(val)){
-                                this.curr_state=this.states[value]
+                                this.curr_state=this.states[value];
+                                this.val=val
+                            }else{
+                                // this.errorOccured=true;
+                                this.val=prev_val
+                                this.discardThis(val)
                             }
+                        }else{
+                            this.val=val
+                            console.log('no matching routes')
                         }
                     }
                 }
+                
             }else{
                 max_routes++
                 parts.unshift(val)
@@ -80,7 +91,6 @@ class USSDMenu extends EventEmitter{
             }
         }
 
-        this.val=val
         try{
            await this.curr_state.run() 
         }catch(e){
@@ -99,12 +109,12 @@ class USSDMenu extends EventEmitter{
         this.curr_state=this.states[name]
         this.curr_state.run()
     }
-    discardThis=()=>{
+    discardThis=(val=null)=>{
         if(this.sess.set){
             let rand=Math.round(Math.random()*10000)
             let pos=this.route.length-1;
             let discarded={};
-            discarded[rand]={val:this.val,pos}
+            discarded[rand]={val:val||this.val,pos}
             this.session.set('discardedRoutes',discarded);
         }else{
             this.emit('error','Can\'t discard whitout a set method');
