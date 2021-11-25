@@ -65,22 +65,29 @@ class USSDMenu extends EventEmitter{
                     this.curr_state=this.states[state_name];
                     this.val=val
                 }else{
+                    const max_length=Object.entries(this.curr_state.next).length;
+                    let curr_next=0;
+    
                     for(let [key,value] of Object.entries(this.curr_state.next)){
+                        curr_next++;
                         let reg;
                         if(key.startsWith("*")){
                             reg=new RegExp(key.substr(1))
                             if(reg.test(val)){
                                 this.curr_state=this.states[value];
-                                this.val=val
+                                this.val=val;
+                                break;
                             }else{
                                 // this.errorOccured=true;
-                                this.val=prev_val
-                                this.discardThis(val)
+                                if(curr_next==max_length){
+                                    this.val=prev_val
+                                    this.discardThis(val)
+                                }
                             }
-                        }else{
+                        }else if(curr_next==max_length){
                             this.val=val
-                            console.log('no matching routes')
                         }
+                    
                     }
                 }
                 

@@ -1,6 +1,6 @@
 {
   "name": "ussd-at",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "ussd builder for africastalking api",
   "main": "index.js",
   "scripts": {
