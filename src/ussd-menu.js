@@ -2,7 +2,8 @@ const EventEmitter = require('events');
 class USSDMenu extends EventEmitter{
     states={}
     curr_state={}
-    id=''
+    id='';
+    remaining_parts=[]
     session={
         set:(...args)=>this.sess['set'](this.id,...args),
         get:(...args)=>this.sess['get'](this.id,...args),
@@ -48,6 +49,7 @@ class USSDMenu extends EventEmitter{
         let parts=route==''||route==undefined?[]:route.split('*')
         if(parts.length==0) this.session.start();
         parts=await this.cleanRoute(parts)
+        this.remaining_parts=parts;
         this.curr_state=this.states['__start__']
         let max_routes=parts.length; 
         let val=parts[0]
@@ -72,7 +74,7 @@ class USSDMenu extends EventEmitter{
                         curr_next++;
                         let reg;
                         if(key.startsWith("*")){
-                            reg=new RegExp(key.substr(1))
+                            reg=new RegExp(key.slice(1))
                             if(reg.test(val)){
                                 this.curr_state=this.states[value];
                                 this.val=val;
@@ -92,9 +94,10 @@ class USSDMenu extends EventEmitter{
                 }
                 
             }else{
-                max_routes++
                 parts.unshift(val)
                 await  this.curr_state.run()
+                max_routes++
+
             }
         }
 
@@ -112,9 +115,11 @@ class USSDMenu extends EventEmitter{
         this.state('__start__',config)
     }
 
-    go=(name)=>{
+    go= async (name)=>{
         this.curr_state=this.states[name]
-        this.curr_state.run()
+        if(this.remaining_parts.length==0){
+            await this.curr_state.run()
+        }
     }
     discardThis=(val=null)=>{
         if(this.sess.set){
