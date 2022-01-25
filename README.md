@@ -35,20 +35,44 @@ menu.startState({
     },
     // next object links to next state based on user input
     next: {
-        '1': 'showBalance',
+        '1': 'pin',
         '2': 'buyAirtime'
     }
 });
 
-menu.state('showBalance', {
+menu.state('pin', {
     run: () => {
-        // fetch balance
-        fetchBalance(menu.args.phoneNumber).then(function(bal){
-            // use menu.end() to send response and terminate session
-            menu.end('Your balance is KES ' + bal);
-        });
+        if(menu.wrongPin){
+            menu.wrongPin=false;
+            menu.con("Wrong pin. please try gain");
+        }else{
+            menu.con("Enter your pin to proceed");
+        }
+       
+    }
+    next:{
+        //regex start with *
+        "*^\\d{4}$":"check_pin"
     }
 });
+
+//A state with no next property
+menu.state('check_pin', {
+    run: () => {
+      let enteredPin = menu.val;
+
+      if(enteredPin == '1234'){
+          menu.end("your balance is 150")
+      }else{
+          menu.wrongPin=true;
+          menu.go("pin");
+          //remember to call the below function when looping a state for the correct input eg for the correct pin as in this example.
+          menu.discardThis()
+      }
+    }
+});
+
+
 
 menu.state('buyAirtime', {
     run: () => {
@@ -92,7 +116,7 @@ Before you can create any states, you first need to create an instance of
 the menu.
 
 ```javascript
-const UssdMenu = require('ussd-menu-builder');
+const UssdMenu = require('ussd-at');
 const menu = new UssdMenu();
 ```
 
@@ -237,24 +261,6 @@ menu.startState({
     }
 });
 ```
-
-***
-**Note**: the ```menu.state()``` and ```menu.startState()``` methods return
-the same menu object instance for convenience.
-
-```javascript
-menu.startState({
-    ...
-})
-.state('state1', {
-    ...
-})
-.state('state2', {
-    ...
-})
-```
-***
-
 ### Matching States
 To link states you use the ```next``` object to map user input to a state name.
 You can match input directly by value or with a regular expression.
@@ -341,37 +347,7 @@ menu.state('thisState', {
     }
 });
 ```
-#### Mapping to an async function with callback
-```javascript
-menu.state('thisState', {
-    ...
-    next: {
-        'input': function(callback){
-            runAsyncCode(function(err, res){
-                if(res){
-                    callback('nextState');
-                } else {
-                    callback('otherState');
-                }
-            })
-        }
-    }
-});
-```
 
-#### Mapping to an async function with promise
-```javascript
-menu.state('thisState', {
-    ...
-    next: {
-        'input': function(){
-            return new Promise((resolve, reject) => {
-                resolve('nextState');
-            });
-        }
-    }
-});
-```
 
 ### Jumping to different state
 You can jump to a different state from the ```run``` function of one
@@ -557,61 +533,3 @@ menu.run(args);
 
 ```
 
-In addition, errors passed to the callback of the session handler's methods or 
-rejected by their promises will also trigger the `error` event for convenience
-so that you can handle your handle errors in one place.
-
-```javascript
-
-menu.sessionConfig({
-    ...
-    get: (sessionId, key, callback){
-        callback(new Error('error'));
-    }
-});
-
-menu.on('error', err => {
-    // handle errors
-    console.log(err);
-});
-
-...
-
-menu.state('someState', {
-    run: () => {
-        menu.session.get('key').then(val => {
-            ...
-        });
-        // you don't have to catch the error here
-    }
-});
-
-```
-
-## Hubtel Support
-
-As of version 1.1.0, ussd-menu-builder has added support for Hubtel's USSD API by providing the `provider` option when creating the **UssdMenu** object. There are no changes to the way states are defined, and the HTTP request parameters sent by Hubtel are mapped as usual to `menu.args`, and the result of `menu.run` is mapped to the HTTP response object expected by Hubtel (`menu.con` returns a _Type: Respons & `menu.end` returns a Type: Release). The additional HTTP request parameters like Operator, ClientState, and Sequence are not used.
-
-The key difference with Hubtel is that the service only sends the most recent response message, rather than the full route string. The library handles that using the Sessions feature, which requires that a SessionConfig is defined in order to store the session's full route. This is stored in the key `route`, so if you use that key in your application it could cause issues.
-
-
-### Example
-
-```javascript
-menu = new UssdMenu({ provider: 'hubtel' });
-// Define Session Config & States normally
-menu.sessionConfig({ ... });
-menu.state('thisState', {
-    run: function(){
-        ...
-    });
-});
-
-app.post('/ussdHubtel', (req, res) => {
-    menu.run(req.body, resMsg => {
-        // resMsg would return an object like:
-        // { "Type": "Response", "Message": "Some Response" }
-        res.json(resMsg);
-    });
-})
-```
