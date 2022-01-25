@@ -66,7 +66,8 @@ menu.state('check_pin', {
       }else{
           menu.wrongPin=true;
           menu.go("pin");
-          //remember to call the below function when looping a state for the correct input eg for the correct pin as in this example.
+          //remember to call the below function when looping a state
+          for the correct input eg for the correct pin as in this example.
           menu.discardThis()
       }
     }
