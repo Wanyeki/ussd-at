@@ -117,9 +117,7 @@ class USSDMenu extends EventEmitter {
     startState = (config) => {
         this.state('__start__', config)
     }
-    goStart = async () => {
-        await this.go('__start__')
-    }
+
     go = async (name) => {
         this.curr_state = this.states[name]
         if (this.remaining_parts.length == 0) {
