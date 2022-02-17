@@ -119,6 +119,9 @@ class USSDMenu extends EventEmitter {
     }
 
     go = async (name) => {
+        if (!this.states[name]) {
+            return this.emit('error', new Error('No such state. provided ' + name))
+        }
         this.curr_state = this.states[name]
         if (this.remaining_parts.length == 0) {
             await this.curr_state.run()
@@ -154,8 +157,11 @@ class USSDMenu extends EventEmitter {
             fs.writeFileSync(this.discardedDir + '/' + this.id, JSON.stringify(discarded));
 
         } else {
-            fs.mkdirSync(os.tmpdir() + '/ussd-at');
-            fs.mkdirSync(os.tmpdir() + '/ussd-at/discarded');
+            if (!fs.existsSync(os.tmpdir() + '/ussd-at')) {
+                fs.mkdirSync(os.tmpdir() + '/ussd-at');
+                fs.mkdirSync(os.tmpdir() + '/ussd-at/discarded');
+            }
+
             fs.writeFileSync(this.discardedDir + '/' + this.id, JSON.stringify({ routes: [data] }))
         }
     }
