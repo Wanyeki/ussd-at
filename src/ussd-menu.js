@@ -5,9 +5,10 @@ const os = require('os')
 class USSDMenu extends EventEmitter {
     discardedDir = os.tmpdir() + '/ussd-at/discarded';
     states = {};
-    curr_state = {};
+    currState = {};
+    prevState = {};
     id = '';
-    remaining_parts = [];
+    remainingParts = [];
     session = {
         set: (...args) => this.sess['set'](this.id, ...args),
         get: (...args) => this.sess['get'](this.id, ...args),
@@ -45,69 +46,85 @@ class USSDMenu extends EventEmitter {
         this.resolver('END ' + text)
     }
     run = async (config) => {
-        this.id = config.sessionId
-        this.route = config.text == '' || config.text == undefined ? [] : config.text.split('*')
-        let that = this
+
+        this.id = config.sessionId;
+        this.route = config.text == '' || config.text == undefined ? [] : config.text.split('*');
         let route = config.text;
         let parts = route == '' || route == undefined ? [] : route.split('*')
         if (parts.length == 0) this.session.start();
         parts = this.cleanRoute(parts)
-        this.remaining_parts = parts;
-        this.curr_state = this.states['__start__']
-        let max_routes = parts.length;
+        this.remainingParts = parts;
+        this.currState = this.states['__start__']
+        let maxRoutes = parts.length;
         let val = parts[0]
 
-        for (let i = 0; i < max_routes; i++) {
+        for (let i = 0; i < maxRoutes; i++) {
             this.message = new Promise((res, rej) => {
-                that.resolver = res
+                this.resolver = res
             });
-            let prev_val = val;
+            let prevVal = val;
             val = parts.shift();
 
-            if (this.curr_state.next) {
-                let state_name = this.curr_state.next[val]
-                if (state_name) {
-                    this.curr_state = this.states[state_name];
+            if (this.currState.next) {
+                let stateName = this.currState.next[val]
+                if (stateName) {
+                    this.currState = this.states[stateName];
                     this.val = val
                 } else {
-                    const max_length = Object.entries(this.curr_state.next).length;
-                    let curr_next = 0;
+                    const maxLength = Object.entries(this.currState.next).length;
+                    let currNext = 0;
 
-                    for (let [key, value] of Object.entries(this.curr_state.next)) {
-                        curr_next++;
+                    for (let [key, value] of Object.entries(this.currState.next)) {
+                        currNext++;
                         let reg;
                         if (key.startsWith("*")) {
                             reg = new RegExp(key.slice(1))
                             if (reg.test(val)) {
-                                this.curr_state = this.states[value];
+                                this.currState = this.states[value];
                                 this.val = val;
                                 break;
                             } else {
                                 // this.errorOccured=true;
-                                if (curr_next == max_length) {
-                                    this.val = prev_val
+                                if (currNext == maxLength) {
+                                    this.val = prevVal
                                     this.discardThis(val)
                                 }
                             }
-                        } else if (curr_next == max_length) {
+                        } else if (key == '') {
+                            this.currState = this.states[val()];
+                        } else if (currNext == maxLength) {
                             this.val = val
                         }
-
                     }
                 }
 
             } else {
                 parts.unshift(val)
-                await this.curr_state.run()
-                max_routes++
+                await this.currState.run()
+                maxRoutes++
 
             }
+            // if there are menu.go 
+            if (this.currState) {
+                if (this.prevState.name == this.currState.name) {
+                    console.log('run the state==');
+                    parts.unshift(val)
+                    await this.currState.run()
+                    maxRoutes++
+                }
+            }else{
+                this.emit('error', 'Did not find a state that matches your input');
+                throw new Error(' Did not find a state that matches your input');
+            }
+
+            console.log('state==', this.currState.name);
         }
 
         try {
-            await this.curr_state.run()
+            await this.currState.run()
         } catch (e) {
             this.emit('error', e)
+            console.log(e)
             this.end("An Error Occured")
         }
 
@@ -122,9 +139,9 @@ class USSDMenu extends EventEmitter {
         if (!this.states[name]) {
             return this.emit('error', new Error('No such state. provided ' + name))
         }
-        this.curr_state = this.states[name]
-        if (this.remaining_parts.length == 0) {
-            await this.curr_state.run()
+        this.currState = this.states[name]
+        if (this.remainingParts.length == 0) {
+            await this.currState.run()
         }
     }
     discardThis = (val = null) => {

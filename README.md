@@ -49,7 +49,7 @@ menu.state('pin', {
             menu.con("Enter your pin to proceed");
         }
        
-    }
+    },
     next:{
         //regex start with *
         "*^\\d{4}$":"check_pin"
@@ -97,10 +97,9 @@ menu.state('buyAirtime.amount', {
 
 // Registering USSD handler with Express
 
-app.post('/ussd', function(req, res){
-    menu.run(req.body, ussdResult => {
-        res.send(ussdResult);
-    });
+app.post('/ussd', async (req, res)=>{
+    const result = await menu.run(req.body)
+    res.send(result);
 });
 
 ```
