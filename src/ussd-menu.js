@@ -72,10 +72,10 @@ class USSDMenu extends EventEmitter {
                     this.val = val
                 } else {
                     const maxLength = Object.entries(this.currState.next).length;
-                    let currNext = 0;
+                    let nextCount = 0;
 
                     for (let [key, value] of Object.entries(this.currState.next)) {
-                        currNext++;
+                        nextCount++;
                         let reg;
                         if (key.startsWith("*")) {
                             reg = new RegExp(key.slice(1))
@@ -83,16 +83,10 @@ class USSDMenu extends EventEmitter {
                                 this.currState = this.states[value];
                                 this.val = val;
                                 break;
-                            } else {
-                                // this.errorOccured=true;
-                                if (currNext == maxLength) {
-                                    this.val = prevVal
-                                    this.discardThis(val)
-                                }
                             }
                         } else if (key == '') {
                             this.currState = this.states[val()];
-                        } else if (currNext == maxLength) {
+                        } else if (nextCount == maxLength) {
                             this.val = val
                         }
                     }
@@ -104,12 +98,21 @@ class USSDMenu extends EventEmitter {
                 maxRoutes++
 
             }
-            // if there are menu.go 
+           
             if (this.currState) {
+                 // if there are menu.go 
                 if (this.prevState.name == this.currState.name) {
                     parts.unshift(val)
                     await this.currState.run()
                     maxRoutes++
+                }
+                //if still doesnt change
+                if (this.prevState.name == this.currState.name) {
+                    maxRoutes--;
+                    parts.shift()
+                    this.val = prevVal
+                    this.discardThis(val)
+                    
                 }
             }else{
                 this.emit('error', 'Did not find a state that matches your input');
