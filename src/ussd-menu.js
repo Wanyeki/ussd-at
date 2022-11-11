@@ -64,7 +64,7 @@ class USSDMenu extends EventEmitter {
             });
             let prevVal = val;
             val = parts.shift();
-
+            this.prevState=this.currState; 
             if (this.currState.next) {
                 let stateName = this.currState.next[val]
                 if (stateName) {
@@ -107,7 +107,6 @@ class USSDMenu extends EventEmitter {
             // if there are menu.go 
             if (this.currState) {
                 if (this.prevState.name == this.currState.name) {
-                    console.log('run the state==');
                     parts.unshift(val)
                     await this.currState.run()
                     maxRoutes++
@@ -117,14 +116,13 @@ class USSDMenu extends EventEmitter {
                 throw new Error(' Did not find a state that matches your input');
             }
 
-            console.log('state==', this.currState.name);
         }
 
         try {
             await this.currState.run()
         } catch (e) {
             this.emit('error', e)
-            console.log(e)
+            console.error(e)
             this.end("An Error Occured")
         }
 
