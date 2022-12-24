@@ -79,7 +79,7 @@ class USSDMenu extends EventEmitter {
                         let reg;
                         if (key.startsWith("*")) {
                             reg = new RegExp(key.slice(1))
-                            if (reg.test(val) && val != 98) {
+                            if (reg.test(val)) {
                                 this.currState = this.states[value];
                                 this.val = val;
                                 break;
