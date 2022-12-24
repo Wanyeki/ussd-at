@@ -101,7 +101,7 @@ class USSDMenu extends EventEmitter {
            
             if (this.currState) {
                  // if there are menu.go 
-                if (this.prevState.name == this.currState.name) {
+                if (this.prevState.name == this.currState.name && this.val != 98) {
                     parts.unshift(val)
                     await this.currState.run()
                     maxRoutes++
