@@ -2,6 +2,13 @@ const EventEmitter = require('events');
 const fs = require('fs')
 const os = require('os')
 
+function remove98(value) {
+    // If the value at the current array index matches the specified value (98)
+    if (value !== '98') {
+        return value;
+    }
+}
+
 class USSDMenu extends EventEmitter {
     discardedDir = os.tmpdir() + '/ussd-at/discarded';
     states = {};
@@ -50,7 +57,7 @@ class USSDMenu extends EventEmitter {
         this.id = config.sessionId;
         this.route = config.text == '' || config.text == undefined ? [] : config.text.split('*');
         let route = config.text;
-        let parts = route == '' || route == undefined ? [] : route.split('*')
+        let parts = route == '' || route == undefined ? [] : route.split('*').filter(remove98)
         if (parts.length == 0) this.session.start();
         parts = this.cleanRoute(parts)
         this.remainingParts = parts;
